@@ -2,11 +2,15 @@
 
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 app = FastAPI()
 
-@app.get("/")
+# Serve static files (HTML, CSS, JS)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.get("/api/")
 async def root():
     return {"message": "Hello Richie"}
 
