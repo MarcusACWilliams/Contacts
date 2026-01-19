@@ -388,10 +388,10 @@
 
         function populateNamesList() {
             const namesList = document.getElementById('namesList');
-            // Shuffle names randomly
-            const shuffled = [...randomNames].sort(() => Math.random() - 0.5);
+            // Sort names alphabetically
+            const sorted = [...randomNames].sort();
             
-            shuffled.forEach(name => {
+            sorted.forEach(name => {
                 const li = document.createElement('li');
                 li.textContent = name;
                 li.onclick = function() {
