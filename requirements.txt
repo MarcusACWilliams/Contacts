@@ -4,3 +4,6 @@ pytest
 pylint
 uvicorn[standard]
 pymongo[srv]
+pydantic
+typing
+asyncio
