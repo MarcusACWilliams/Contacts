@@ -7,3 +7,4 @@ pymongo[srv]
 pydantic
 typing
 asyncio
+beanie
