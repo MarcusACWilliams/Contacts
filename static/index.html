@@ -476,10 +476,12 @@
                     body: JSON.stringify({
                         first: firstName,
                         last: lastName,
-                        middle: null,
-                        phone: "",
                         email: [],
-                        address: null
+                        phone: [],
+                        address: [],
+                        social_media: null,
+                        notes: null,
+                        birthday: null
                     })
                 });
                 
@@ -489,7 +491,8 @@
                     closeModal();
                     fetchContacts(); // Refresh the list
                 } else {
-                    alert('Error adding contact. Please check your input.');
+                    const errorData = await response.json();
+                    alert(`Error adding contact: ${errorData.detail || 'Please check your input.'}`);
                 }
             } catch (error) {
                 console.error('Error:', error);

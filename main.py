@@ -31,11 +31,6 @@ async def startup():
 
 Contact = dataModels.Contact
 
-# Define a Pydantic model for Todo items
-class TodoItem(BaseModel):
-    name: str   
-todo_db = []
-
 @app.get("/")
 async def root():
     """Serve index.html at root"""
@@ -68,8 +63,9 @@ async def getUserNames():
 @app.post("/contacts")
 async def createContact(contact: dataModels.Contact):
     """Create a new contact"""
-    result = await collection.insert_one(contact.dict())
+    result = await collection.insert_one(contact.model_dump())
     return {"id": str(result.inserted_id), "message": "Contact created successfully"}
+
 
 @app.get("/contacts/search")
 async def searchContacts(query: str = ""):
