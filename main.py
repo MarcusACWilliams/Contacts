@@ -103,6 +103,21 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
     
     return {"id": contact_id, "message": "Contact updated successfully"}
 
+@app.delete("/contacts/{contact_id}")
+async def deleteContact(contact_id: str):
+    """Delete a contact by ID"""
+    try:
+        object_id = ObjectId(contact_id)
+    except:
+        return {"error": "Invalid contact ID"}
+    
+    result = await collection.delete_one({"_id": object_id})
+    
+    if result.deleted_count == 0:
+        return {"error": "Contact not found"}
+    
+    return {"id": contact_id, "message": "Contact deleted successfully"}
+
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
