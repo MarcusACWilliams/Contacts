@@ -8,3 +8,4 @@ pydantic
 typing
 asyncio
 beanie
+python-dotenv

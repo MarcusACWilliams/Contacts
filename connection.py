@@ -1,8 +1,12 @@
 import asyncio
 from pymongo import AsyncMongoClient
+import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from a .env file
 
 async def get_database():
-    URI = "mongodb+srv://marcusacwilliams:WorkhardBenice2024$$@vitalcluster.elzgb.mongodb.net/?retryWrites=true&w=majority&appName=VitalCluster"
+    URI = os.getenv("URI")
     client = AsyncMongoClient(URI)
     try:
         # Connect the client to the server
