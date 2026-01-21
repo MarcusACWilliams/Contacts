@@ -67,6 +67,23 @@ async def createContact(contact: dataModels.Contact):
     result = await collection.insert_one(contact.model_dump())
     return {"id": str(result.inserted_id), "message": "Contact created successfully"}
 
+@app.get("/contacts/search")
+async def searchContacts(query: str = ""):
+    """Search contacts by first or last name"""
+    if not query:
+        results = await collection.find({}).to_list(100)
+    else:
+        results = await collection.find({
+            "$or": [
+                {"first": {"$regex": query, "$options": "i"}},
+                {"last": {"$regex": query, "$options": "i"}}
+            ]
+        }).to_list(100)
+    
+    for doc in results:
+        doc["_id"] = str(doc["_id"])
+    
+    return results
 
 @app.put("/contacts/{contact_id}")
 async def updateContact(contact_id: str, contact: dataModels.Contact):
@@ -85,24 +102,6 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
         return {"error": "Contact not found"}
     
     return {"id": contact_id, "message": "Contact updated successfully"}
-
-@app.get("/contacts/search")
-async def searchContacts(query: str = ""):
-    """Search contacts by first or last name"""
-    if not query:
-        results = await collection.find({}).to_list(100)
-    else:
-        results = await collection.find({
-            "$or": [
-                {"first": {"$regex": query, "$options": "i"}},
-                {"last": {"$regex": query, "$options": "i"}}
-            ]
-        }).to_list(100)
-    
-    for doc in results:
-        doc["_id"] = str(doc["_id"])
-    
-    return results
 
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
