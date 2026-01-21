@@ -332,27 +332,361 @@
         .btn-cancel:hover {
             background: #e0e0e0;
         }
+
+        .modal {
+            background: white;
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 90%;
+            animation: modalSlideIn 0.3s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f9f9f9;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.1em;
+            margin: 0;
+        }
+
+        .modal-header button {
+            padding: 0;
+            background: none;
+            border: none;
+            color: #007AFF;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .profile-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ccc;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .add-photo-btn {
+            background: none;
+            border: none;
+            color: #007AFF;
+            cursor: pointer;
+            font-size: 0.95em;
+            padding: 0;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section-title {
+            font-size: 0.75em;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding: 0 0 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 0;
+            border: none;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 1em;
+            font-family: inherit;
+            outline: none;
+            background: transparent;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-bottom-color: #007AFF;
+        }
+
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            font-weight: normal;
+        }
+
+        .form-group:last-child input,
+        .form-group:last-child textarea {
+            border-bottom: none;
+        }
+
+        .add-field-btn {
+            background: none;
+            border: none;
+            color: #34C759;
+            cursor: pointer;
+            font-size: 1em;
+            padding: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .add-field-btn::before {
+            content: "+";
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .phone-email-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .phone-email-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .phone-email-item input {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            outline: none;
+            font-size: 1em;
+            background: transparent;
+        }
+
+        .phone-email-item button {
+            background: none;
+            border: none;
+            color: #FF3B30;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .phone-email-item:hover button {
+            display: flex;
+            opacity: 1;
+        }
+
+        .detail-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+
+        .detail-item-content {
+            flex: 1;
+        }
+
+        .detail-item-delete {
+            background: none;
+            border: none;
+            color: #FF3B30;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .detail-item:hover .detail-item-delete {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+            background: #f9f9f9;
+        }
+
+        .modal-footer button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-submit {
+            background: #007AFF;
+            color: white;
+        }
     </style>
 </head>
 <body>
     
     <div id="modalOverlay" class="modal-overlay" onclick="closeModalOnOverlay(event)">
         <div class="modal">
-            <h2>Add New Contact</h2>
-            <form id="addNameForm" onsubmit="submitForm(event)">
-                <div class="form-group">
-                    <label for="firstName">First Name</label>
-                    <input type="text" id="firstName" name="firstName" required>
+            <div class="modal-header">
+                <h2>New Contact</h2>
+                <button type="button" onclick="closeModal()">Done</button>
+            </div>
+            <form id="addNameForm" onsubmit="submitForm(event)" class="modal-body">
+                <div class="profile-section">
+                    <div class="profile-avatar" id="avatarDisplay">👤</div>
+                    <button type="button" class="add-photo-btn" onclick="alert('Photo upload coming soon')">Add Photo</button>
                 </div>
-                <div class="form-group">
-                    <label for="lastName">Last Name</label>
-                    <input type="text" id="lastName" name="lastName" required>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <input type="text" id="firstName" name="firstName" placeholder="First name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="lastName" name="lastName" placeholder="Last name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="company" name="company" placeholder="Company">
+                    </div>
                 </div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn-submit">Add Contact</button>
+
+                <div class="form-section">
+                    <div class="form-section-title">Phone</div>
+                    <ul class="phone-email-list" id="phoneList"></ul>
+                    <button type="button" class="add-field-btn" onclick="addPhoneField(event)"> add phone</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Email</div>
+                    <ul class="phone-email-list" id="emailList"></ul>
+                    <button type="button" class="add-field-btn" onclick="addEmailField(event)"> add email</button>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <input type="text" id="address" name="address" placeholder="Address">
+                    </div>
                 </div>
             </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-submit" onclick="submitForm(event)">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModalOverlay" class="modal-overlay" onclick="closeDetailModalOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="detailContactName">Contact</h2>
+                <button type="button" onclick="closeDetailModal()">Done</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-section">
+                    <div class="profile-avatar" id="detailAvatarDisplay">👤</div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">First Name</label>
+                        <div style="padding: 12px 0; border-bottom: 1px solid #e0e0e0;" id="detailFirstName"></div>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">Last Name</label>
+                        <div style="padding: 12px 0; border-bottom: 1px solid #e0e0e0;" id="detailLastName"></div>
+                    </div>
+                    <div class="form-group" id="detailCompanyGroup" style="display: none;">
+                        <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">Company</label>
+                        <div style="padding: 12px 0;" id="detailCompany"></div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="detailPhoneSection" style="display: none;">
+                    <div class="form-section-title">Phone</div>
+                    <div id="detailPhoneList"></div>
+                </div>
+
+                <div class="form-section" id="detailEmailSection" style="display: none;">
+                    <div class="form-section-title">Email</div>
+                    <div id="detailEmailList"></div>
+                </div>
+
+                <div class="form-section" id="detailAddressGroup" style="display: none;">
+                    <div class="form-group">
+                        <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">Address</label>
+                        <div style="padding: 12px 0;" id="detailAddress"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeDetailModal()">Close</button>
+                <button type="button" class="btn-submit" onclick="editCurrentContact()">Edit</button>
+            </div>
         </div>
     </div>
 
@@ -373,6 +707,10 @@
     </div>
 
     <script>
+        // Store current contact being viewed
+        let currentContact = null;
+        let isEditMode = false;
+
         // Fetch contacts from the API
         async function fetchContacts() {
             try {
@@ -412,8 +750,9 @@
                 const li = document.createElement('li');
                 const fullName = `${contact.first} ${contact.last}`;
                 li.textContent = fullName;
+                li.style.cursor = 'pointer';
                 li.onclick = function() {
-                    alert(`Selected: ${fullName}`);
+                    openDetailModal(contact);
                 };
                 namesList.appendChild(li);
             });
@@ -442,17 +781,49 @@
         function openModal() {
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('firstName').focus();
+            // Clear previous phone and email fields
+            document.getElementById('phoneList').innerHTML = '';
+            document.getElementById('emailList').innerHTML = '';
+            // Reset edit mode for new contact
+            isEditMode = false;
         }
 
         function closeModal() {
             document.getElementById('modalOverlay').classList.remove('active');
             document.getElementById('addNameForm').reset();
+            isEditMode = false;
         }
 
         function closeModalOnOverlay(event) {
             if (event.target === event.currentTarget) {
                 closeModal();
             }
+        }
+
+        function addPhoneField(event) {
+            event.preventDefault();
+            const phoneList = document.getElementById('phoneList');
+            const li = document.createElement('li');
+            li.className = 'phone-email-item';
+            li.innerHTML = `
+                <input type="tel" class="phone-input" placeholder="Phone number">
+                <button type="button" onclick="this.parentElement.remove()">−</button>
+            `;
+            phoneList.appendChild(li);
+            li.querySelector('input').focus();
+        }
+
+        function addEmailField(event) {
+            event.preventDefault();
+            const emailList = document.getElementById('emailList');
+            const li = document.createElement('li');
+            li.className = 'phone-email-item';
+            li.innerHTML = `
+                <input type="email" class="email-input" placeholder="Email address">
+                <button type="button" onclick="this.parentElement.remove()">−</button>
+            `;
+            emailList.appendChild(li);
+            li.querySelector('input').focus();
         }
 
         // Submit form via AJAX
@@ -463,31 +834,53 @@
             const lastName = document.getElementById('lastName').value.trim();
             
             if (!firstName || !lastName) {
-                alert('Please fill in all fields');
+                alert('Please fill in first and last name');
                 return;
             }
+
+            // Collect phone numbers
+            const phones = [];
+            document.querySelectorAll('.phone-input').forEach(input => {
+                const val = input.value.trim();
+                if (val) phones.push(val);
+            });
+
+            // Collect emails
+            const emails = [];
+            document.querySelectorAll('.email-input').forEach(input => {
+                const val = input.value.trim();
+                if (val) emails.push(val);
+            });
+
+            const company = document.getElementById('company').value.trim();
+            const address = document.getElementById('address').value.trim();
+            
+            const contactData = {
+                first: firstName,
+                last: lastName,
+                email: emails,
+                phone: phones,
+                address: address || null,
+                social_media: null,
+                notes: null,
+                birthday: null
+            };
             
             try {
-                const response = await fetch('/contacts', {
-                    method: 'POST',
+                // Determine if we're editing or creating
+                const endpoint = isEditMode ? `/contacts/${currentContact._id}` : '/contacts';
+                const method = isEditMode ? 'PUT' : 'POST';
+                
+                const response = await fetch(endpoint, {
+                    method: method,
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        first: firstName,
-                        last: lastName,
-                        email: [],
-                        phone: [],
-                        address: "123 Main St",
-                        social_media: null,
-                        notes: null,
-                        birthday: null
-                    })
+                    body: JSON.stringify(contactData)
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    alert('Contact added successfully!');
                     closeModal();
                     fetchContacts(); // Refresh the list
                 } else {
@@ -498,6 +891,144 @@
                 console.error('Error:', error);
                 alert('Error adding contact');
             }
+        }
+
+        // Detail Modal Functions
+        function openDetailModal(contact) {
+            // Store the current contact
+            currentContact = contact;
+            
+            // Update contact name
+            const fullName = `${contact.first} ${contact.last}`;
+            document.getElementById('detailContactName').textContent = fullName;
+            
+            // Update basic info
+            document.getElementById('detailFirstName').textContent = contact.first;
+            document.getElementById('detailLastName').textContent = contact.last;
+            
+            // Update company if exists
+            if (contact.company) {
+                document.getElementById('detailCompanyGroup').style.display = 'block';
+                document.getElementById('detailCompany').textContent = contact.company;
+            } else {
+                document.getElementById('detailCompanyGroup').style.display = 'none';
+            }
+            
+            // Update phones
+            const detailPhoneList = document.getElementById('detailPhoneList');
+            const detailPhoneSection = document.getElementById('detailPhoneSection');
+            detailPhoneList.innerHTML = '';
+            if (contact.phone && contact.phone.length > 0) {
+                detailPhoneSection.style.display = 'block';
+                contact.phone.forEach(phone => {
+                    const phoneDiv = document.createElement('div');
+                    phoneDiv.style.padding = '8px 0';
+                    phoneDiv.style.borderBottom = '1px solid #e0e0e0';
+                    phoneDiv.textContent = phone;
+                    detailPhoneList.appendChild(phoneDiv);
+                });
+            } else {
+                detailPhoneSection.style.display = 'none';
+            }
+            
+            // Update emails
+            const detailEmailList = document.getElementById('detailEmailList');
+            const detailEmailSection = document.getElementById('detailEmailSection');
+            detailEmailList.innerHTML = '';
+            if (contact.email && contact.email.length > 0) {
+                detailEmailSection.style.display = 'block';
+                contact.email.forEach(email => {
+                    const emailDiv = document.createElement('div');
+                    emailDiv.style.padding = '8px 0';
+                    emailDiv.style.borderBottom = '1px solid #e0e0e0';
+                    emailDiv.textContent = email;
+                    detailEmailList.appendChild(emailDiv);
+                });
+            } else {
+                detailEmailSection.style.display = 'none';
+            }
+            
+            // Update address
+            const detailAddressGroup = document.getElementById('detailAddressGroup');
+            if (contact.address) {
+                detailAddressGroup.style.display = 'block';
+                document.getElementById('detailAddress').textContent = contact.address;
+            } else {
+                detailAddressGroup.style.display = 'none';
+            }
+            
+            // Show modal
+            document.getElementById('detailModalOverlay').classList.add('active');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModalOverlay').classList.remove('active');
+        }
+
+        function closeDetailModalOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closeDetailModal();
+            }
+        }
+
+        //EDIT CONTACT FUNCTION
+        function editCurrentContact() {
+            if (!currentContact) return;
+            
+            // Set edit mode flag
+            isEditMode = true;
+            
+            // Close detail modal
+            closeDetailModal();
+            
+            // Populate add contact modal with current contact data
+            document.getElementById('firstName').value = currentContact.first || '';
+            document.getElementById('lastName').value = currentContact.last || '';
+            document.getElementById('company').value = currentContact.company || '';
+            document.getElementById('address').value = currentContact.address || '';
+            
+            // Clear and repopulate phone list
+            const phoneList = document.getElementById('phoneList');
+            phoneList.innerHTML = '';
+            if (currentContact.phone && currentContact.phone.length > 0) {
+                currentContact.phone.forEach(phone => {
+                    const li = document.createElement('li');
+                    li.className = 'phone-email-item';
+                    li.innerHTML = `
+                        <input type="tel" class="phone-input" placeholder="Phone number" value="${phone}">
+                        <button type="button" onclick="this.parentElement.remove()">−</button>
+                    `;
+                    phoneList.appendChild(li);
+                });
+            }
+            
+            // Clear and repopulate email list
+            const emailList = document.getElementById('emailList');
+            emailList.innerHTML = '';
+            if (currentContact.email && currentContact.email.length > 0) {
+                currentContact.email.forEach(email => {
+                    const li = document.createElement('li');
+                    li.className = 'phone-email-item';
+                    li.innerHTML = `
+                        <input type="email" class="email-input" placeholder="Email address" value="${email}">
+                        <button type="button" onclick="this.parentElement.remove()">−</button>
+                    `;
+                    emailList.appendChild(li);
+                });
+            }
+            
+            // Open add contact modal (repurposed for editing)
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('firstName').focus();
+        }
+
+        function showDetailModal(contact) {
+            // Store the current contact
+            currentContact = contact;
+            
+            // Update contact name
+            const fullName = `${contact.first} ${contact.last}`;
+            document.getElementById('detailContactName').textContent = fullName;
         }
 
         // Initialize page

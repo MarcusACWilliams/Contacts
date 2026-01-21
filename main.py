@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from bson.objectid import ObjectId
 import connection
 import dataModels
 import uvicorn
@@ -66,6 +67,24 @@ async def createContact(contact: dataModels.Contact):
     result = await collection.insert_one(contact.model_dump())
     return {"id": str(result.inserted_id), "message": "Contact created successfully"}
 
+
+@app.put("/contacts/{contact_id}")
+async def updateContact(contact_id: str, contact: dataModels.Contact):
+    """Update an existing contact"""
+    try:
+        object_id = ObjectId(contact_id)
+    except:
+        return {"error": "Invalid contact ID"}
+    
+    result = await collection.update_one(
+        {"_id": object_id},
+        {"$set": contact.model_dump()}
+    )
+    
+    if result.matched_count == 0:
+        return {"error": "Contact not found"}
+    
+    return {"id": contact_id, "message": "Contact updated successfully"}
 
 @app.get("/contacts/search")
 async def searchContacts(query: str = ""):
