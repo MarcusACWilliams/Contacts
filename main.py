@@ -24,6 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#Establish database connection on startup
 @app.on_event("startup")
 async def startup():
     global dbClient, collection
@@ -102,6 +103,7 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
         return {"error": "Contact not found"}
     
     return {"id": contact_id, "message": "Contact updated successfully"}
+
 
 @app.delete("/contacts/{contact_id}")
 async def deleteContact(contact_id: str):
