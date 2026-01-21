@@ -1,6 +1,5 @@
-[![Python application test with Github Actions](https://github.com/rolani/fastapi-aws-app-runner/actions/workflows/main.yml/badge.svg)](https://github.com/rolani/fastapi-aws-app-runner/actions/workflows/main.yml)
-
+[![Python application test with Github Actions]
 # continuous-integration
-This is a sample repo.
-
+This is a test project built with FastAPI and Javascript
+You can Add, View, Edit, Search, and Delete contacts that show up in a convient scrolable list.
 
