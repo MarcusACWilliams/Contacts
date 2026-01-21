@@ -1,5 +1,6 @@
 
-This is a test project built with FastAPI and Javascript
+This is a test project built with FastAPI Backend and Javascript frontend with AJAX for dynamic updates.
+
 You can Add, View, Edit, Search, and Delete contacts that show up in a convient scrollable list.
 
 Try The Demo Here: https://dtf2skrcbq.us-east-1.awsapprunner.com/
