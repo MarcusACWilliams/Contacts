@@ -6,15 +6,15 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    env:
+      URI: ${{ secrets.URI }}
+      
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python 3.8
       uses: actions/setup-python@v4
       with:
         python-version: 3.8
-      env:
-        URI: ${{ secrets.URI }}
     - name: Install dependencies
       run: |
         make install
