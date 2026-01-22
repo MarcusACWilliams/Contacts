@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi import BackgroundTasks
 from bson.objectid import ObjectId
 import connection
 import dataModels
@@ -63,9 +64,10 @@ async def getUserNames():
     return {"names": sorted(names)}
 
 @app.post("/contacts")
-async def createContact(contact: dataModels.Contact):
+async def createContact(contact: dataModels.Contact, background_tasks: BackgroundTasks):
     """Create a new contact"""
     result = await collection.insert_one(contact.model_dump())
+    background_tasks.add_task(checkForDuplicateContact, contact)
     return {"id": str(result.inserted_id), "message": "Contact created successfully"}
 
 @app.get("/contacts/search")
@@ -105,6 +107,7 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
     return {"id": contact_id, "message": "Contact updated successfully"}
 
 
+
 @app.delete("/contacts/{contact_id}")
 async def deleteContact(contact_id: str):
     """Delete a contact by ID"""
@@ -122,6 +125,21 @@ async def deleteContact(contact_id: str):
 
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+async def checkForDuplicateContact(contact: Contact):
+    """Check for duplicate contact based on first and last name"""
+    existing_contacts = await collection.find({
+        "first": contact.first,
+        "last": contact.last
+    }).to_list(100)
+    for doc in existing_contacts:
+        doc["_id"] = str(doc["_id"])
+    for existing_contact in existing_contacts:  
+        emails = existing_contact.get("email", [])
+        phones = existing_contact.get("phone", [])
+        if set(contact.email).intersection(set(emails)) or set(contact.phone).intersection(set(phones)):
+            return True 
+    return False
 
 if __name__ == '__main__':
     uvicorn.run(app, port=8080, host='0.0.0.0')
