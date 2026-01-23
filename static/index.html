@@ -134,7 +134,12 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/cleave.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.0.2/addons/cleave-phone.us.js"></script> 
+
     <script>
+
+        
         // Store current contact being viewed
         let currentContact = null;
         let isEditMode = false;
@@ -232,18 +237,21 @@
             }
         }
 
+
+
         function addPhoneField(event) {
             event.preventDefault();
             const phoneList = document.getElementById('phoneList');
             const li = document.createElement('li');
             li.className = 'phone-email-item';
             li.innerHTML = `
-                <input type="tel" class="phone-input" placeholder="Phone number">
+                <input type="tel" class="phone-input" id="phone-input" placeholder="Phone number">
                 <button type="button" onclick="this.parentElement.remove()">−</button>
             `;
             phoneList.appendChild(li);
             li.querySelector('input').focus();
         }
+
 
         function addEmailField(event) {
             event.preventDefault();
@@ -531,6 +539,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             fetchContacts();
             console.log('Contacts app loaded successfully!');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var cleave = new Cleave('.input-element', {
+                phone: true,
+                phoneRegionCode: 'US' // Specify country code (e.g., 'US', 'GB', 'IN')
+            });
         });
     </script>
 </body>

@@ -64,10 +64,10 @@ async def getUserNames():
     return {"names": sorted(names)}
 
 @app.post("/contacts")
-async def createContact(contact: dataModels.Contact, background_tasks: BackgroundTasks):
+async def createContact(contact: dataModels.Contact , background_tasks: BackgroundTasks):
     """Create a new contact"""
     result = await collection.insert_one(contact.model_dump())
-    background_tasks.add_task(checkForDuplicateContact, contact)
+    background_tasks.add_task(checkForDuplicateContact, contact, result.inserted_id)
     return {"id": str(result.inserted_id), "message": "Contact created successfully"}
 
 @app.get("/contacts/search")
@@ -126,7 +126,9 @@ async def deleteContact(contact_id: str):
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-async def checkForDuplicateContact(contact: Contact):
+async def checkForDuplicateContact(contact: Contact, contact_id: str):
+    emails = set()
+    phones = set()
     """Check for duplicate contact based on first and last name"""
     existing_contacts = await collection.find({
         "first": contact.first,
@@ -134,11 +136,16 @@ async def checkForDuplicateContact(contact: Contact):
     }).to_list(100)
     for doc in existing_contacts:
         doc["_id"] = str(doc["_id"])
-    for existing_contact in existing_contacts:  
-        emails = existing_contact.get("email", [])
-        phones = existing_contact.get("phone", [])
-        if set(contact.email).intersection(set(emails)) or set(contact.phone).intersection(set(phones)):
-            return True 
+    #Remove the current contact from the list
+    filtered_contacts = filter(lambda cont: cont["_id"] != contact_id, existing_contacts)
+    # Check for matching email or phone
+    for ex_contact in filtered_contacts:
+        for mail in ex_contact.get("email", []):
+            emails.add(mail)
+        for phone in ex_contact.get("phone", []):
+            phones.add(phone)
+    if emails.isdisjoint(set(contact.email)) is False or phones.isdisjoint(set(contact.phone)) is False:
+            return True
     return False
 
 if __name__ == '__main__':
