@@ -328,13 +328,21 @@
                     },
                     body: JSON.stringify(contactData)
                 });
+
+                const data = await response.json();
+
                 if (response.ok) {
-                    const data = await response.json();
+                    alert(isEditMode ? 'Contact updated successfully' : 'Contact added successfully');
                     closeModal();
                     fetchContacts(); // Refresh the list
                 } else {
-                    const errorData = await response.json();
-                    alert(`Error adding contact: ${errorData.detail || 'Please check your input.'}`);
+                    // Handle validation errors
+                    if (data.details && Array.isArray(data.details)) {
+                        const errorMessages = data.details.map(err => `${err.field}: ${err.message}`).join('\n');
+                        alert(`Validation Error:\n${errorMessages}`);
+                    } else {
+                        alert(data.error || 'Error saving contact');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);

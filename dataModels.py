@@ -21,19 +21,31 @@ class Contact(BaseModel):
             raise ValueError("Name cannot be empty")
         if not all(ch.isalpha() or ch in {" ", "-", "'"} for ch in cleaned):
             raise ValueError("Name must only contain letters, spaces, hyphens, or apostrophes")
-        return cleaned 
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, value: str) -> str:
-        cleaned = value.strip()
-        if "@" not in cleaned or "." not in cleaned:
-            raise ValueError("Invalid email address")
         return cleaned
-    @field_validator("phone")
+    @field_validator("email", mode='before')
     @classmethod
-    def validate_phone(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not all(ch.isdigit() or ch in {"-", "(", ")", " "} for ch in cleaned):
-            raise ValueError("Phone number must only contain digits, spaces, hyphens, or parentheses")
-        return cleaned
+    def validate_email(cls, value):
+        if isinstance(value, list):
+            validated_emails = []
+            for email in value:
+                cleaned = email.strip()
+                if cleaned and ("@" not in cleaned or "." not in cleaned):
+                    raise ValueError(f"Invalid email address: {cleaned}")
+                if cleaned:
+                    validated_emails.append(cleaned)
+            return validated_emails
+        return value
+    @field_validator("phone", mode='before')
+    @classmethod
+    def validate_phone(cls, value):
+        if isinstance(value, list):
+            validated_phones = []
+            for phone in value:
+                cleaned = phone.strip()
+                if cleaned and not all(ch.isdigit() or ch in {"-", "(", ")", " "} for ch in cleaned):
+                    raise ValueError("Phone number must only contain digits, spaces, hyphens, or parentheses")
+                if cleaned:
+                    validated_phones.append(cleaned)
+            return validated_phones
+        return value
     

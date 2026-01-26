@@ -1,20 +1,38 @@
 #!/usr/bin/env python
 
 
+from typing import List
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi import BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi import BackgroundTasks, Request
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel
+from pydantic import ValidationError
 from bson.objectid import ObjectId
 import connection
 import dataModels
 import uvicorn
-from pydantic import BaseModel
-from typing import List
+
+
 
 
 app = FastAPI()
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        field = ".".join(str(x) for x in error["loc"][1:])  # Skip 'body' prefix
+        message = error["msg"]
+        errors.append({"field": field, "message": message})
+    
+    return JSONResponse(
+        status_code=422,
+        content={"error": "Validation failed", "details": errors}
+    )
 
 # Add CORS middleware to allow AJAX requests
 app.add_middleware(
@@ -64,11 +82,21 @@ async def getUserNames():
     return {"names": sorted(names)}
 
 @app.post("/contacts")
-async def createContact(contact: dataModels.Contact , background_tasks: BackgroundTasks):
+async def createContact(contact: dataModels.Contact, background_tasks: BackgroundTasks):
     """Create a new contact"""
-    result = await collection.insert_one(contact.model_dump())
-    background_tasks.add_task(checkForDuplicateContact, contact, result.inserted_id)
-    return {"id": str(result.inserted_id), "message": "Contact created successfully"}
+    try:
+        result = await collection.insert_one(contact.model_dump())
+        background_tasks.add_task(checkForDuplicateContact, contact, result.inserted_id)
+        return {"id": str(result.inserted_id), "message": "Contact created successfully"}
+    except ValidationError as e:
+        errors = []
+        for error in e.errors():
+            field = ".".join(str(x) for x in error["loc"])
+            message = error["msg"]
+            errors.append({"field": field, "message": message})
+        return {"error": "Validation failed", "details": errors}
+    except Exception as e:
+        return {"error": f"Failed to create contact: {str(e)}"}
 
 @app.get("/contacts/search")
 async def searchContacts(query: str = ""):
