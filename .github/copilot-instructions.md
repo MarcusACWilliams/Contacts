@@ -1,0 +1,22 @@
+# Contacts Copilot Instructions
+- **Project shape**: FastAPI backend with async MongoDB access plus a plain HTML/CSS/JS frontend served by FastAPI at `/`. Static assets live in [static/index.html](static/index.html) and [static/css/styles.css](static/css/styles.css).
+- **Backend entry**: The FastAPI app and routes are all in [main.py](main.py). Static files are mounted at `/static`; root `GET /` returns the HTML shell.
+- **Database**: [connection.py](connection.py) loads `URI` from `.env`, creates an async PyMongo client, pings, and returns DB `careTeam`. Routes in [main.py](main.py) grab collection `users` on startup.
+- **Data model**: `Contact` in [dataModels.py](dataModels.py) requires `first` and `last`; both are trimmed and must be letters/space/hyphen/apostrophe. `email` and `phone` are lists with simple format checks; extra fields are ignored by default. The UI sends `company`, but it is not persisted because the model does not define it.
+- **API surface**: CRUD lives in [main.py](main.py): `POST /contacts`, `PUT /contacts/{id}`, `DELETE /contacts/{id}`, `GET /contacts/search?query=` for filtered or all contacts, `GET /users/` for raw docs, and `GET /users/names` to derive sorted full names. ObjectId strings are converted before returning JSON.
+- **Validation UX**: A custom `RequestValidationError` handler in [main.py](main.py) returns `{"error":"Validation failed","details":[{field,message}]}`; reuse this shape for new validators.
+- **Duplicate check**: `createContact` schedules `checkForDuplicateContact` in [main.py](main.py), but the result is ignored; no duplicate prevention is enforced. Factor this in if you add dedupe logic.
+- **Frontend contract**: [static/index.html](static/index.html) fetches `/contacts/search` on load, uses the `_id` string in `currentContact`, and calls the backend endpoints directly via `fetch`. Keep response shapes stable (`_id`, `first`, `last`, `phone`, `email`, `address`).
+- **UI flow**: The modal is reused for create/edit with `isEditMode`; deleting uses `/contacts/{id}`. Empty lists render gracefully; ensure new fields are optional in the UI.
+- **CORS**: [main.py](main.py) enables permissive CORS (`*` origins/methods/headers) for AJAX; keep this aligned if adding auth.
+- **Running**: Prefer `make install` to set deps, then `make run-uvicorn` for live reload or `make run` to execute `python main.py`. Uvicorn entrypoint is `main:app` on port 8000 by default (8080 if running `python main.py`).
+- **Testing/linting**: `make test` calls `python -m pytest -vv test_hello.py` (file not present); `make lint` runs pylint on main.py/hello.py; adjust targets if you add tests. `make format` runs `black *.py` over root-level Python files.
+- **Dependencies**: See [requirements.txt](requirements.txt): FastAPI, uvicorn[standard], pymongo[srv], pydantic (v2 validators in use), python-dotenv, plus tooling (black, pylint, pytest). Motor is not used; database access relies on PyMongo’s async client.
+- **Error patterns**: API methods return JSON with either `error` keys or success payloads (id/message). Maintain consistent shapes so the frontend toast/alert logic keeps working.
+- **IDs**: Mutating routes cast `contact_id` to `ObjectId`; invalid strings return `{error:"Invalid contact ID"}`. Remember to `str()` ObjectIds before returning any new documents.
+- **Static build**: There is no bundler; update JS/CSS directly in [static/index.html](static/index.html) and [static/css/styles.css](static/css/styles.css). Keep paths relative to `/static` for FastAPI StaticFiles.
+- **Search**: `/contacts/search` uses case-insensitive regex on `first` or `last`; empty query returns the first 100 docs. Keep payloads small or add pagination if you expand results.
+- **Contact shape drift**: The UI currently stores `address`/`company` inputs; only `address` persists. If you add new fields, update both the Pydantic model and the frontend render/edit logic to stay in sync.
+- **Background tasks**: `BackgroundTasks` is used for duplicate checking only. If you introduce async side work (e.g., notifications), follow the same pattern to avoid blocking requests.
+- **Static demo link**: README points to a hosted demo; keep behavior aligned with that UX when changing flows.
+- **Common pitfalls**: missing `.env` URI causes Mongo connection failure; ObjectIds must be stringified for JSON; validation rejects names with numerals; Pydantic will drop unknown fields unless configured otherwise.

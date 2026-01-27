@@ -1,6 +1,8 @@
 black
 fastapi
 pytest
+pytest-asyncio
+httpx
 pylint
 uvicorn[standard]
 pymongo[srv]
