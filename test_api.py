@@ -379,7 +379,7 @@ class TestCheckForDuplicateContact:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["john@example.com"],
+            emails=["john@example.com"],
             phone=["123-456-7890"]
         )
 
@@ -407,7 +407,7 @@ class TestCheckForDuplicateContact:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["john@example.com"],
+            emails=["john@example.com"],
             phone=["123-456-7890"]
         )
 
@@ -435,7 +435,7 @@ class TestCheckForDuplicateContact:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["different@example.com"],
+            emails=["different@example.com"],
             phone=["123-456-7890"]
         )
 
@@ -464,7 +464,7 @@ class TestCheckForDuplicateContact:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["john@example.com"],
+            emails=["john@example.com"],
             phone=["123-456-7890"]
         )
 

@@ -13,7 +13,7 @@ class TestContactModel:
         contact = Contact(first="John", last="Doe")
         assert contact.first == "John"
         assert contact.last == "Doe"
-        assert contact.email == []
+        assert contact.emails == []
         assert contact.phone == []
         assert contact.address is None
 
@@ -22,7 +22,7 @@ class TestContactModel:
         contact = Contact(
             first="Jane",
             last="Smith",
-            email=["jane@example.com", "j.smith@work.com"],
+            emails=["jane@example.com", "j.smith@work.com"],
             phone=["123-456-7890", "(555) 123-4567"],
             address="123 Main St",
             social_media={"twitter": "@jane", "linkedin": "jane-smith"},
@@ -31,7 +31,7 @@ class TestContactModel:
         )
         assert contact.first == "Jane"
         assert contact.last == "Smith"
-        assert len(contact.email) == 2
+        assert len(contact.emails) == 2
         assert len(contact.phone) == 2
         assert contact.address == "123 Main St"
 
@@ -99,34 +99,34 @@ class TestContactModel:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["john@example.com", "test.user@domain.co.uk"]
+            emails=["john@example.com", "test.user@domain.co.uk"]
         )
-        assert len(contact.email) == 2
+        assert len(contact.emails) == 2
 
     def test_email_validation_missing_at(self):
         """Test that emails without @ are rejected"""
         with pytest.raises(ValidationError) as exc_info:
-            Contact(first="John", last="Doe", email=["invalidemail.com"])
+            Contact(first="John", last="Doe", emails=["invalidemail.com"])
         errors = exc_info.value.errors()
         assert any("Invalid email address" in str(e["ctx"]["error"]) for e in errors)
 
     def test_email_validation_missing_dot(self):
         """Test that emails without dot are rejected"""
         with pytest.raises(ValidationError) as exc_info:
-            Contact(first="John", last="Doe", email=["invalid@emailcom"])
+            Contact(first="John", last="Doe", emails=["invalid@emailcom"])
         errors = exc_info.value.errors()
         assert any("Invalid email address" in str(e["ctx"]["error"]) for e in errors)
 
     def test_email_trimming(self):
         """Test that email addresses are trimmed"""
-        contact = Contact(first="John", last="Doe", email=["  test@example.com  "])
-        assert contact.email[0] == "test@example.com"
+        contact = Contact(first="John", last="Doe", emails=["  test@example.com  "])
+        assert contact.emails[0] == "test@example.com"
 
     def test_empty_email_filtered(self):
         """Test that empty strings in email list are filtered out"""
-        contact = Contact(first="John", last="Doe", email=["test@example.com", "", "  "])
-        assert len(contact.email) == 1
-        assert contact.email[0] == "test@example.com"
+        contact = Contact(first="John", last="Doe", emails=["test@example.com", "", "  "])
+        assert len(contact.emails) == 1
+        assert contact.emails[0] == "test@example.com"
 
     def test_phone_validation_valid(self):
         """Test that valid phone formats are accepted"""
@@ -167,7 +167,7 @@ class TestContactModel:
         contact = Contact(
             first="John",
             last="Doe",
-            email=["john@example.com"],
+            emails=["john@example.com"],
             phone=["123-456-7890"]
         )
         data = contact.model_dump()

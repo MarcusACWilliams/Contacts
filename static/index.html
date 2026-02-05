@@ -298,7 +298,7 @@
             const contactData = {
                 first: firstName,
                 last: lastName,
-                email: emails,
+                emails: emails,
                 phone: phones,
                 address: address || null,
                 social_media: null,
@@ -405,13 +405,14 @@
             const detailEmailList = document.getElementById('detailEmailList');
             const detailEmailSection = document.getElementById('detailEmailSection');
             detailEmailList.innerHTML = '';
-            if (contact.email && contact.email.length > 0) {
+            if (contact.emails && contact.emails.length > 0) {
+                
                 detailEmailSection.style.display = 'block';
-                contact.email.forEach(email => {
+                contact.emails.forEach(email => {
                     const emailDiv = document.createElement('div');
                     emailDiv.style.padding = '8px 0';
                     emailDiv.style.borderBottom = '1px solid #e0e0e0';
-                    emailDiv.textContent = email;
+                    emailDiv.textContent = (email && typeof email === 'object') ? email.address : email;
                     detailEmailList.appendChild(emailDiv);
                 });
             } else {
@@ -517,12 +518,13 @@
             // Clear and repopulate email list
             const emailList = document.getElementById('emailList');
             emailList.innerHTML = '';
-            if (currentContact.email && currentContact.email.length > 0) {
-                currentContact.email.forEach(email => {
+            if (currentContact.emails && currentContact.emails.length > 0) {
+                currentContact.emails.forEach(email => {
+                    const emailValue = (email && typeof email === 'object') ? email.address : email;
                     const li = document.createElement('li');
                     li.className = 'phone-email-item';
                     li.innerHTML = `
-                        <input type="email" class="email-input" placeholder="Email address" value="${email}">
+                        <input type="email" class="email-input" placeholder="Email address" value="${emailValue || ''}">
                         <button type="button" onclick="this.parentElement.remove()">−</button>
                     `;
                     emailList.appendChild(li);
