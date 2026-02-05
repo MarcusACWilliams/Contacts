@@ -163,11 +163,6 @@ async def createContact(contact: dataModels.Contact, background_tasks: Backgroun
 @app.put("/contacts/{contact_id}")
 async def updateContact(contact_id: str, contact: dataModels.Contact):
     """Update an existing contact"""
-    try:
-        object_id = ObjectId(contact_id)
-    except:
-        return {"error": "Invalid contact ID"}
-    
     """Convert to dict for storage, converting bytes to hex strings"""
     contact_dict = contact.model_dump()
     
@@ -181,11 +176,11 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
         
         contact_id_val = email._contact_id
         if not contact_id_val or contact_id_val == b'':
-            contact_id_val = object_id
+            contact_id_val = bytes.fromhex(contact_id) if len(contact_id) == 24 else None
         
         email_dict = {
             "_id": email_id.hex() if isinstance(email_id, bytes) else email_id,
-            "_contact_id": contact_id_val.hex() if isinstance(contact_id_val, bytes) else str(contact_id),
+            "_contact_id": contact_id_val.hex() if isinstance(contact_id_val, bytes) else contact_id,
             "address": email.address,
             "type": email.type
         }
@@ -193,7 +188,7 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
     contact_dict["emails"] = emails_list
     
     result = await collection.update_one(
-        {"_id": object_id},
+        {"_id": contact_id},
         {"$set": contact_dict}
     )
     
@@ -224,16 +219,19 @@ async def searchContacts(query: str = ""):
 async def deleteContact(contact_id: str):
     """Delete a contact by ID"""
     try:
-        object_id = ObjectId(contact_id)
-    except:
-        return {"error": "Invalid contact ID"}
-    
-    result = await collection.delete_one({"_id": object_id})
-    
-    if result.deleted_count == 0:
-        return {"error": "Contact not found"}
-    
-    return {"id": contact_id, "message": "Contact deleted successfully"}
+        print(f"Attempting to delete contact with _id: {contact_id}")
+        result = await collection.delete_one({"_id": contact_id})
+        print(f"Delete result - deleted_count: {result.deleted_count}")
+        
+        if result.deleted_count == 0:
+            print(f"Contact not found with _id: {contact_id}")
+            return {"error": "Contact not found"}
+        
+        print(f"Successfully deleted contact with _id: {contact_id}")
+        return {"id": contact_id, "message": "Contact deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting contact: {e}")
+        return {"error": str(e)}
 
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")

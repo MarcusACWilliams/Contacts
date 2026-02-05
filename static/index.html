@@ -441,22 +441,26 @@
         }
 
         function closeConfirmationModal(event) {
-            if (event && event.target !== event.currentTarget) return;
+            // Only close if clicking on overlay itself, not on modal content
+            if (event && event.target && event.target !== event.currentTarget) return;
             document.getElementById('confirmationModalOverlay').classList.remove('active');
         }
 
         async function deleteContact() {
             if (!currentContact || !currentContact._id) {
+                console.error('Current contact:', currentContact);
                 alert('Error: No contact selected for deletion');
                 return;
             }
 
             try {
+                console.log(`Attempting to delete contact with ID: ${currentContact._id}`);
                 const response = await fetch(`/contacts/${currentContact._id}`, {
                     method: 'DELETE'
                 });
                 
                 const result = await response.json();
+                console.log(`Delete response:`, result, `Status: ${response.status}`);
                 
                 if (response.ok) {
                     closeConfirmationModal();
@@ -464,11 +468,12 @@
                     fetchContacts();
                     alert('Contact deleted successfully');
                 } else {
+                    console.error('Delete failed:', result);
                     alert(result.error || 'Error deleting contact');
                 }
             } catch (error) {
                 console.error('Error deleting contact:', error);
-                alert('Error deleting contact');
+                alert('Error deleting contact: ' + error.message);
             }
         }
 

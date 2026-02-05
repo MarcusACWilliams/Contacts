@@ -11,7 +11,7 @@ class EmailAddress(BaseModel):
 
 # Pydantic model for Contact
 class Contact(BaseModel):
-    _id: bytes
+    _id: Optional[bytes] = None
     first: str
     last: str
     emails: List[EmailAddress] = []
