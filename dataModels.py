@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, field_validator
+from classes.emails import emailaddress
 
 # Pydantic model for EmailAddress
 class EmailAddress(BaseModel):
@@ -43,20 +44,27 @@ class Contact(BaseModel):
                 if isinstance(item, str):
                     cleaned = item.strip()
                     if cleaned:
-                        if "@" not in cleaned or "." not in cleaned:
-                            raise ValueError(f"Invalid email address: {cleaned}")
-                        # Create EmailAddress object with placeholder IDs (will be set in createContact)
-                        email_obj = EmailAddress(
-                            _id=b'',  # Placeholder, will be set in endpoint
-                            _contact_id=b'',  # Placeholder, will be set in endpoint
-                            address=cleaned,
-                            type='home'
-                        )
-                        validated_emails.append(email_obj)
+                        try:
+                            # Use emailaddress class for validation
+                            email_obj_validator = emailaddress(cleaned)
+                            # If validation passes, create EmailAddress object
+                            email_obj = EmailAddress(
+                                _id=b'',  # Placeholder, will be set in endpoint
+                                _contact_id=b'',  # Placeholder, will be set in endpoint
+                                address=email_obj_validator.address,
+                                type='home'
+                            )
+                            validated_emails.append(email_obj)
+                        except ValueError as e:
+                            raise ValueError(f"Invalid email address: {cleaned} - {str(e)}")
                 elif isinstance(item, dict):
-                    # Already a dict/object, validate and convert
+                    # Already a dict/object, validate address with emailaddress class
                     if 'address' in item:
-                        validated_emails.append(EmailAddress(**item))
+                        try:
+                            email_obj_validator = emailaddress(item['address'])
+                            validated_emails.append(EmailAddress(**item))
+                        except ValueError as e:
+                            raise ValueError(f"Invalid email address in dict: {item.get('address')} - {str(e)}")
             return validated_emails
         return value if value else []
     @field_validator("phone", mode='before')

@@ -266,6 +266,28 @@
             li.querySelector('input').focus();
         }
 
+        async function validateEmails(emails) {
+            const invalid = [];
+            for (const address of emails) {
+                try {
+                    const response = await fetch('/emails/validate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ address })
+                    });
+                    const result = await response.json();
+                    if (!result.valid) {
+                        invalid.push({ address, error: result.error || 'Invalid email' });
+                    }
+                } catch (error) {
+                    invalid.push({ address, error: 'Unable to validate email' });
+                }
+            }
+            return invalid;
+        }
+
         // Submit form via AJAX
         async function submitForm(event) {
             event.preventDefault();
@@ -291,6 +313,14 @@
                 const val = input.value.trim();
                 if (val) emails.push(val);
             });
+
+            // Validate emails via backend
+            const invalidEmails = await validateEmails(emails);
+            if (invalidEmails.length > 0) {
+                const firstError = invalidEmails[0];
+                alert(`Invalid email: ${firstError.address}\n${firstError.error}`);
+                return;
+            }
 
             const company = document.getElementById('company').value.trim();
             const address = document.getElementById('address').value.trim();

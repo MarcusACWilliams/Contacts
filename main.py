@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from bson.objectid import ObjectId
 import connection
 import dataModels
+from classes.emails import emailaddress
 import uvicorn
 import time
 import random
@@ -233,10 +234,9 @@ async def deleteContact(contact_id: str):
         print(f"Error deleting contact: {e}")
         return {"error": str(e)}
 
-# Serve static files (HTML, CSS, JS)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 async def checkForDuplicateContact(contact: Contact, contact_id: str):
+    """Check for duplicate contact based on name and contact details"""
     emails = set()
     phones = set()
     """Check for duplicate contact based on first and last name"""
@@ -258,33 +258,92 @@ async def checkForDuplicateContact(contact: Contact, contact_id: str):
             return True
     return False
 
+
+# Serve static files (HTML, CSS, JS)
+#
+
 async def gatherEmailAddresses():
     """Gather all email addresses from a list of contacts"""
     
-    """Get the curent list of """
-    existing_emails = await emailsCollection.find({}).to_list(100)
+    """Get the current list of emails"""
     existing_contacts = await collection.find({}).to_list(100)
     for contact in existing_contacts:
         contact["_id"] = str(contact["_id"])
+    
     email_addresses = []
     for contact in existing_contacts:
-        email_addresses = email_addresses + contact["emails"]
-    for email_doc in existing_emails:
-        email_addresses.append(email_doc.get("email_address"))
+        for email in contact.get("emails", []):
+            email_addresses.append(email.get("address"))
+    
     """Ensure uniqueness -- email_set is a LIST of unique email addresses"""   
     email_set = []
     for email in email_addresses:
-        if email_set.count(email) == 0:
+        if email and email_set.count(email) == 0:
             email_set.append(email)
+    
     try:
-        insert_result = await emailsCollection.insert_many(email_set)
-        print("Inserted IDs:", insert_result.inserted_ids)
+        if email_set:
+            # Delete existing emails and insert updated list
+            await emailsCollection.delete_many({})
+            email_docs = [{"address": email} for email in email_set]
+            insert_result = await emailsCollection.insert_many(email_docs)
+            print(f"Inserted {len(insert_result.inserted_ids)} unique email addresses")
+        return {"count": len(email_set), "emails": email_set}
     except Exception as e:
-        print("Error inserting email addresses:", str(e))
-        return
-   
+        print("Error gathering email addresses:", str(e))
+        return {"error": str(e)}
+
+
+# Email utility endpoints
+@app.post("/emails/validate")
+async def validate_email(email: dict):
+    """Validate an email address using the emailaddress class"""
+    try:
+        address = email.get("address", "").strip()
+        if not address:
+            return {"valid": False, "error": "Email address cannot be empty"}
         
+        email_obj = emailaddress(address)
+        return {
+            "valid": True,
+            "address": email_obj.address,
+            "username": email_obj.username,
+            "domain": email_obj.domain,
+            "is_common_provider": email_obj.is_common_provider,
+            "domain_parts": email_obj.get_domain_parts()
+        }
+    except ValueError as e:
+        return {"valid": False, "error": str(e)}
+    except Exception as e:
+        return {"valid": False, "error": f"Validation error: {str(e)}"}
+
+
+@app.get("/emails/list")
+async def list_all_emails():
+    """Get all unique email addresses from contacts"""
+    try:
+        result = await gatherEmailAddresses()
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/emails/providers")
+async def get_email_providers():
+    """Get list of common email providers"""
+    return {
+        "providers": sorted(list(emailaddress.COMMON_PROVIDERS))
+    }
+
+
+# Serve static files (HTML, CSS, JS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 if __name__ == '__main__':
     uvicorn.run(app, port=8080, host='0.0.0.0')
+
+
+#if __name__ == '__main__':
+#    uvicorn.run(app, port=8080, host='0.0.0.0')
+
