@@ -80,10 +80,10 @@ app.add_middleware(
 #Establish database connection on startup
 @app.on_event("startup")
 async def startup():
-    global dbClient, collection, emailsCollection
+    global dbClient, user_collection, emails_Collection
     dbClient = await connection.get_database()
-    collection = dbClient["users"]
-    emailsCollection = dbClient["emails"]
+    user_collection = dbClient["users"]
+    emails_Collection = dbClient["emails"]
 
 Contact = dataModels.Contact
 EmailAddress = dataModels.EmailAddress
@@ -95,7 +95,7 @@ async def root():
 
 @app.get("/users/")
 async def getUsers():
-    results = await collection.find({}).to_list(100)
+    results = await user_collection.find({}).to_list(100)
     print("Fetched results:")
     # Convert ObjectId to string for JSON serialization
     for doc in results:
@@ -108,7 +108,7 @@ async def getUsers():
 @app.get("/users/names")
 async def getUserNames():
     """Get all user names from database"""
-    results = await collection.find({}).to_list(100)
+    results = await user_collection.find({}).to_list(100)
     for doc in results:
         doc["_id"] = str(doc["_id"])
     names = []
@@ -147,8 +147,8 @@ async def createContact(contact: dataModels.Contact, background_tasks: Backgroun
         contact_dict["emails"] = emails_list
         
         """Add contact to database"""
-        result = await collection.insert_one(contact_dict)
-        # background_tasks.add_task(gatherEmailAddresses)
+        result = await user_collection.insert_one(contact_dict)
+        background_tasks.add_task(gatherEmailAddresses)
         # background_tasks.add_task(checkForDuplicateContact, contact, str(result.inserted_id))
         return {"id": str(result.inserted_id), "message": "Contact created successfully"}
     except ValidationError as e:
@@ -162,7 +162,7 @@ async def createContact(contact: dataModels.Contact, background_tasks: Backgroun
         return {"error": f"Failed to create contact: {str(e)}"}
 
 @app.put("/contacts/{contact_id}")
-async def updateContact(contact_id: str, contact: dataModels.Contact):
+async def updateContact(contact_id: str, contact: dataModels.Contact, background_tasks: BackgroundTasks):
     """Update an existing contact"""
     """Convert to dict for storage, converting bytes to hex strings"""
     contact_dict = contact.model_dump()
@@ -188,23 +188,24 @@ async def updateContact(contact_id: str, contact: dataModels.Contact):
         emails_list.append(email_dict)
     contact_dict["emails"] = emails_list
     
-    result = await collection.update_one(
+    result = await user_collection.update_one(
         {"_id": contact_id},
         {"$set": contact_dict}
     )
     
     if result.matched_count == 0:
         return {"error": "Contact not found"}
-    
+           
+    background_tasks.add_task(gatherEmailAddresses)
     return {"id": contact_id, "message": "Contact updated successfully"}
 
 @app.get("/contacts/search")
 async def searchContacts(query: str = ""):
     """Search contacts by first or last name"""
     if not query:
-        results = await collection.find({}).to_list(100)
+        results = await user_collection.find({}).to_list(100)
     else:
-        results = await collection.find({
+        results = await user_collection.find({
             "$or": [
                 {"first": {"$regex": query, "$options": "i"}},
                 {"last": {"$regex": query, "$options": "i"}}
@@ -221,7 +222,7 @@ async def deleteContact(contact_id: str):
     """Delete a contact by ID"""
     try:
         print(f"Attempting to delete contact with _id: {contact_id}")
-        result = await collection.delete_one({"_id": contact_id})
+        result = await user_collection.delete_one({"_id": contact_id})
         print(f"Delete result - deleted_count: {result.deleted_count}")
         
         if result.deleted_count == 0:
@@ -240,7 +241,7 @@ async def checkForDuplicateContact(contact: Contact, contact_id: str):
     emails = set()
     phones = set()
     """Check for duplicate contact based on first and last name"""
-    existing_contacts = await collection.find({
+    existing_contacts = await user_collection.find({
         "first": contact.first,
         "last": contact.last
     }).to_list(100)
@@ -266,29 +267,40 @@ async def gatherEmailAddresses():
     """Gather all email addresses from a list of contacts"""
     
     """Get the current list of emails"""
-    existing_contacts = await collection.find({}).to_list(100)
-    for contact in existing_contacts:
-        contact["_id"] = str(contact["_id"])
-    
-    email_addresses = []
+    existing_contacts = await user_collection.find({}).to_list(100)
+    current_emails = await emails_Collection.find({}).to_list(100)
+
+    existing_email_set = set()
+    for email_doc in current_emails:
+        address = email_doc.get("address")
+        if address:
+            existing_email_set.add(address.strip().lower())
+
+    new_email_docs = []
     for contact in existing_contacts:
         for email in contact.get("emails", []):
-            email_addresses.append(email.get("address"))
-    
-    """Ensure uniqueness -- email_set is a LIST of unique email addresses"""   
-    email_set = []
-    for email in email_addresses:
-        if email and email_set.count(email) == 0:
-            email_set.append(email)
-    
+            address = email.get("address") if isinstance(email, dict) else None
+            if not address:
+                continue
+
+            try:
+                # Validate and normalize using the EmailAddress data model
+                email_model = EmailAddress(address=address.strip())
+                normalized = email_model.address.strip().lower()
+
+                if normalized in existing_email_set:
+                    continue
+
+                existing_email_set.add(normalized)
+                new_email_docs.append({"address": email_model.address.strip()})
+            except ValidationError:
+                continue
+
     try:
-        if email_set:
-            # Delete existing emails and insert updated list
-            await emailsCollection.delete_many({})
-            email_docs = [{"address": email} for email in email_set]
-            insert_result = await emailsCollection.insert_many(email_docs)
-            print(f"Inserted {len(insert_result.inserted_ids)} unique email addresses")
-        return {"count": len(email_set), "emails": email_set}
+        if new_email_docs:
+            insert_result = await emails_Collection.insert_many(new_email_docs)
+            print(f"Inserted {len(insert_result.inserted_ids)} new unique email addresses")
+        return {"count": len(new_email_docs), "emails": [doc["address"] for doc in new_email_docs]}
     except Exception as e:
         print("Error gathering email addresses:", str(e))
         return {"error": str(e)}
