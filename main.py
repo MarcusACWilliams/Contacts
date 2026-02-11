@@ -259,10 +259,7 @@ async def checkForDuplicateContact(contact: Contact, contact_id: str):
             return True
     return False
 
-
-# Serve static files (HTML, CSS, JS)
-#
-
+# Background task to gather email addresses from contacts and store in separate collection
 async def gatherEmailAddresses():
     """Gather all email addresses from a list of contacts"""
     
@@ -270,32 +267,28 @@ async def gatherEmailAddresses():
     existing_contacts = await user_collection.find({}).to_list(100)
     current_emails = await emails_Collection.find({}).to_list(100)
 
+    # Create a set of existing email addresses for quick lookup
     existing_email_set = set()
     for email_doc in current_emails:
-        address = email_doc.get("address")
-        if address:
-            existing_email_set.add(address.strip().lower())
+        email = EmailAddress(
+            _id=bytes.fromhex(email_doc["_id"]) if "_id" in email_doc else None,
+            _contact_id=bytes.fromhex(email_doc["_contact_id"]) if "_contact_id" in email_doc else None,
+            address=email_doc.get("address", "").strip(),
+            type=email_doc.get("type")
+        )
+        existing_email_set.add(email.address.strip().lower())
 
     new_email_docs = []
     for contact in existing_contacts:
-        for email in contact.get("emails", []):
-            address = email.get("address") if isinstance(email, dict) else None
-            if not address:
-                continue
-
-            try:
-                # Validate and normalize using the EmailAddress data model
-                email_model = EmailAddress(address=address.strip())
-                normalized = email_model.address.strip().lower()
-
-                if normalized in existing_email_set:
-                    continue
-
-                existing_email_set.add(normalized)
-                new_email_docs.append({"address": email_model.address.strip()})
-            except ValidationError:
-                continue
-
+        for email_doc in contact.get("emails", []):
+                email = EmailAddress(
+                    _id=bytes.fromhex(email_doc["_id"]) if "_id" in email_doc else None,
+                    _contact_id=bytes.fromhex(email_doc["_contact_id"]) if "_contact_id" in email_doc else None,
+                    address=email_doc.get("address", "").strip(),
+                    type=email_doc.get("type")
+                )
+                if email.address.strip().lower() not in existing_email_set:
+                    new_email_docs.append(email_doc)
     try:
         if new_email_docs:
             insert_result = await emails_Collection.insert_many(new_email_docs)
@@ -304,7 +297,6 @@ async def gatherEmailAddresses():
     except Exception as e:
         print("Error gathering email addresses:", str(e))
         return {"error": str(e)}
-
 
 # Email utility endpoints
 @app.post("/emails/validate")
