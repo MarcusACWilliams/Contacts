@@ -12,7 +12,7 @@ run:
 	python main.py
 
 run-uvicorn:
-	uvicorn main:app --reload
+	uvicorn main:app
 
 killweb:
 	sudo killall uvicorn
