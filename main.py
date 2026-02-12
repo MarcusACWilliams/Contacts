@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from pydantic import ValidationError
 from bson.objectid import ObjectId
+from dotenv import load_dotenv
 import connection
 import dataModels
 from classes.emails import emailaddress
@@ -20,6 +21,9 @@ import time
 import random
 import struct
 from datetime import datetime
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Initialize counter with random 3-byte value (0 to 16777215)
 _counter = random.randint(0, 0xFFFFFF)
