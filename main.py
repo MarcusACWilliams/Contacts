@@ -14,10 +14,12 @@ from bson.objectid import ObjectId
 import connection
 import dataModels
 from classes.emails import emailaddress
+from classes.messaging import EmailMessenger, SMSMessenger
 import uvicorn
 import time
 import random
 import struct
+from datetime import datetime
 
 # Initialize counter with random 3-byte value (0 to 16777215)
 _counter = random.randint(0, 0xFFFFFF)
@@ -80,13 +82,19 @@ app.add_middleware(
 #Establish database connection on startup
 @app.on_event("startup")
 async def startup():
-    global dbClient, user_collection, emails_Collection
+    global dbClient, user_collection, emails_Collection, messages_collection, email_messenger, sms_messenger
     dbClient = await connection.get_database()
     user_collection = dbClient["users"]
     emails_Collection = dbClient["emails"]
+    messages_collection = dbClient["messages"]
+    
+    # Initialize messaging services
+    email_messenger = EmailMessenger()
+    sms_messenger = SMSMessenger()
 
 Contact = dataModels.Contact
 EmailAddress = dataModels.EmailAddress
+Message = dataModels.Message
 
 @app.get("/")
 async def root():
@@ -338,6 +346,214 @@ async def get_email_providers():
     return {
         "providers": sorted(list(emailaddress.COMMON_PROVIDERS))
     }
+
+
+# ============= MESSAGE ENDPOINTS =============
+
+@app.post("/messages/email/send")
+async def send_email_message(message_data: dict):
+    """Send email to a contact"""
+    try:
+        contact_id = message_data.get("contact_id")
+        recipient_email = message_data.get("email")
+        subject = message_data.get("subject", "")
+        body = message_data.get("body", "")
+        is_draft = message_data.get("is_draft", False)
+        
+        # Validate required fields
+        if not contact_id:
+            return {"error": "contact_id is required"}
+        if not recipient_email:
+            return {"error": "email is required"}
+        if not body.strip():
+            return {"error": "body cannot be empty"}
+        
+        # Verify contact exists
+        contact = await user_collection.find_one({"_id": contact_id})
+        if not contact:
+            return {"error": "Contact not found"}
+        
+        # Create message record
+        message_id = generate_id()
+        message = Message(
+            _id=message_id,
+            _contact_id=contact_id,
+            type="email",
+            direction="sent",
+            recipient=recipient_email,
+            subject=subject,
+            body=body,
+            status="draft" if is_draft else "sending",
+            timestamp=datetime.utcnow()
+        )
+        
+        # Save as draft
+        if is_draft:
+            message_dict = message.model_dump()
+            await messages_collection.insert_one(message_dict)
+            return {
+                "id": message_id,
+                "status": "draft",
+                "message": "Email saved as draft"
+            }
+        
+        # Send email
+        result = await email_messenger.send_email(
+            recipient_email=recipient_email,
+            subject=subject,
+            body=body,
+            contact_id=contact_id
+        )
+        
+        # Update message status based on result
+        if result["success"]:
+            message.status = "sent"
+            message.delivered_at = datetime.utcnow()
+            message.metadata = {
+                "provider": result.get("provider"),
+                "message_id": result.get("message_id")
+            }
+        else:
+            message.status = "failed"
+            message.error_message = result.get("error")
+        
+        # Save message to database
+        message_dict = message.model_dump()
+        await messages_collection.insert_one(message_dict)
+        
+        if result["success"]:
+            return {
+                "id": message_id,
+                "status": "sent",
+                "message": "Email sent successfully"
+            }
+        else:
+            return {
+                "error": f"Failed to send email: {result.get('error')}",
+                "message_id": message_id,
+                "status": "failed"
+            }
+    
+    except ValidationError as e:
+        errors = []
+        for error in e.errors():
+            field = ".".join(str(x) for x in error["loc"])
+            message = error["msg"]
+            errors.append({"field": field, "message": message})
+        return {"error": "Validation failed", "details": errors}
+    except Exception as e:
+        return {"error": f"Failed to send email: {str(e)}"}
+
+
+@app.post("/messages/email/draft")
+async def save_email_draft(message_data: dict):
+    """Save email as draft"""
+    message_data["is_draft"] = True
+    return await send_email_message(message_data)
+
+
+@app.get("/messages/contact/{contact_id}")
+async def get_contact_messages(contact_id: str):
+    """Get all messages for a contact"""
+    try:
+        messages = await messages_collection.find(
+            {"_contact_id": contact_id}
+        ).sort("timestamp", -1).to_list(100)
+        
+        # Convert datetime to string for JSON serialization
+        for msg in messages:
+            if msg.get("timestamp"):
+                msg["timestamp"] = msg["timestamp"].isoformat()
+            if msg.get("delivered_at"):
+                msg["delivered_at"] = msg["delivered_at"].isoformat()
+        
+        return {"messages": messages}
+    except Exception as e:
+        return {"error": f"Failed to retrieve messages: {str(e)}"}
+
+
+@app.put("/messages/{message_id}")
+async def update_message(message_id: str, message_data: dict):
+    """Update a draft message"""
+    try:
+        # Check if message exists and is a draft
+        existing = await messages_collection.find_one({"_id": message_id})
+        if not existing:
+            return {"error": "Message not found"}
+        
+        if existing.get("status") != "draft":
+            return {"error": "Only draft messages can be updated"}
+        
+        # Update allowed fields
+        update_fields = {}
+        if "subject" in message_data:
+            update_fields["subject"] = message_data["subject"]
+        if "body" in message_data:
+            update_fields["body"] = message_data["body"]
+        if "recipient" in message_data:
+            update_fields["recipient"] = message_data["recipient"]
+        
+        if update_fields:
+            await messages_collection.update_one(
+                {"_id": message_id},
+                {"$set": update_fields}
+            )
+        
+        return {
+            "id": message_id,
+            "message": "Draft updated successfully"
+        }
+    except Exception as e:
+        return {"error": f"Failed to update message: {str(e)}"}
+
+
+@app.delete("/messages/{message_id}")
+async def delete_message(message_id: str):
+    """Delete a draft message"""
+    try:
+        # Check if message exists and is a draft
+        existing = await messages_collection.find_one({"_id": message_id})
+        if not existing:
+            return {"error": "Message not found"}
+        
+        if existing.get("status") != "draft":
+            return {"error": "Only draft messages can be deleted"}
+        
+        result = await messages_collection.delete_one({"_id": message_id})
+        
+        if result.deleted_count == 0:
+            return {"error": "Message not found"}
+        
+        return {
+            "id": message_id,
+            "message": "Draft deleted successfully"
+        }
+    except Exception as e:
+        return {"error": f"Failed to delete message: {str(e)}"}
+
+
+@app.get("/messages/templates")
+async def get_email_templates():
+    """Get available email templates"""
+    return {
+        "templates": email_messenger.get_available_templates()
+    }
+
+
+@app.post("/messages/templates/render")
+async def render_email_template(template_data: dict):
+    """Render an email template with context"""
+    try:
+        template_name = template_data.get("template_name")
+        context = template_data.get("context", {})
+        
+        if not template_name:
+            return {"error": "template_name is required"}
+        
+        rendered = email_messenger.render_template(template_name, context)
+        return {"body": rendered}
+    except Exception as e:
+        return {"error": f"Failed to render template: {str(e)}"}
 
 
 # Serve static files (HTML, CSS, JS)

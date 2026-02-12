@@ -11,3 +11,4 @@ typing
 asyncio
 beanie
 python-dotenv
+sendgrid

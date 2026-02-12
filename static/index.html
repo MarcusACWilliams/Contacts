@@ -111,10 +111,80 @@
                         <div style="padding: 12px 0;" id="detailAddress"></div>
                     </div>
                 </div>
+
+                <div class="form-section" id="messagingSection">
+                    <div class="form-section-title">Quick Message</div>
+                    <div class="message-buttons" style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button type="button" class="btn-message-email" onclick="openEmailComposer()" style="flex: 1; padding: 10px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            ✉️ Send Email
+                        </button>
+                        <button type="button" class="btn-message-history" onclick="viewMessageHistory()" style="flex: 1; padding: 10px; background: #5856D6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                            📋 History
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeDetailModal()">Close</button>
                 <button type="button" class="btn-submit" onclick="editCurrentContact()">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="emailComposerOverlay" class="modal-overlay" onclick="closeEmailComposerOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="emailComposerTitle">Send Email</h2>
+                <button type="button" onclick="closeEmailComposer()">Done</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">To:</label>
+                    <select id="recipientEmail" class="form-control" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                        <option value="">Select email address...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">Subject:</label>
+                    <input type="text" id="emailSubject" placeholder="Email subject" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                </div>
+                <div class="form-group">
+                    <label style="color: #888; font-size: 0.75em; text-transform: uppercase;">Message:</label>
+                    <textarea id="emailBody" rows="8" placeholder="Type your message..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div class="template-suggestions" style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                    <button type="button" onclick="insertTemplate('greeting')" style="padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                        👋 Greeting
+                    </button>
+                    <button type="button" onclick="insertTemplate('followup')" style="padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                        📞 Follow-up
+                    </button>
+                    <button type="button" onclick="insertTemplate('quick_note')" style="padding: 6px 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                        📝 Quick Note
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeEmailComposer()">Cancel</button>
+                <button type="button" class="btn-secondary" onclick="saveDraft()" style="background: #8E8E93; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;">Save Draft</button>
+                <button type="button" class="btn-submit" onclick="sendEmail()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageHistoryOverlay" class="modal-overlay" onclick="closeMessageHistoryOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Message History</h2>
+                <button type="button" onclick="closeMessageHistory()">Done</button>
+            </div>
+            <div class="modal-body">
+                <div id="messageList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Messages loaded via AJAX -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeMessageHistory()">Close</button>
             </div>
         </div>
     </div>
@@ -592,6 +662,260 @@
                 phoneRegionCode: 'US' // Specify country code (e.g., 'US', 'GB', 'IN')
             });
         });
+
+        // ============= EMAIL COMPOSER FUNCTIONS =============
+
+        function openEmailComposer() {
+            if (!currentContact) return;
+            
+            // Update title with contact name
+            const fullName = `${currentContact.first} ${currentContact.last}`;
+            document.getElementById('emailComposerTitle').textContent = `Send Email to ${fullName}`;
+            
+            // Populate email dropdown
+            const emailSelect = document.getElementById('recipientEmail');
+            emailSelect.innerHTML = '<option value="">Select email address...</option>';
+            
+            if (currentContact.emails && currentContact.emails.length > 0) {
+                currentContact.emails.forEach(email => {
+                    const emailValue = (email && typeof email === 'object') ? email.address : email;
+                    const option = document.createElement('option');
+                    option.value = emailValue;
+                    option.textContent = emailValue;
+                    emailSelect.appendChild(option);
+                });
+                // Auto-select first email
+                emailSelect.value = currentContact.emails[0].address || currentContact.emails[0];
+            } else {
+                emailSelect.innerHTML = '<option value="">No email addresses for this contact</option>';
+            }
+            
+            // Clear subject and body
+            document.getElementById('emailSubject').value = '';
+            document.getElementById('emailBody').value = '';
+            
+            // Close detail modal and open email composer
+            closeDetailModal();
+            document.getElementById('emailComposerOverlay').classList.add('active');
+            document.getElementById('emailSubject').focus();
+        }
+
+        function closeEmailComposer() {
+            document.getElementById('emailComposerOverlay').classList.remove('active');
+        }
+
+        function closeEmailComposerOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closeEmailComposer();
+            }
+        }
+
+        async function sendEmail() {
+            const recipientEmail = document.getElementById('recipientEmail').value;
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+            
+            if (!recipientEmail) {
+                alert('Please select a recipient email address');
+                return;
+            }
+            
+            if (!body) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            if (!currentContact || !currentContact._id) {
+                alert('Error: No contact selected');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/messages/email/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contact_id: currentContact._id,
+                        email: recipientEmail,
+                        subject: subject || '(No Subject)',
+                        body: body,
+                        is_draft: false
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'sent') {
+                    alert('Email sent successfully!');
+                    closeEmailComposer();
+                } else {
+                    alert(result.error || 'Failed to send email. Please check your email configuration.');
+                    console.error('Email send error:', result);
+                }
+            } catch (error) {
+                console.error('Error sending email:', error);
+                alert('Error sending email: ' + error.message);
+            }
+        }
+
+        async function saveDraft() {
+            const recipientEmail = document.getElementById('recipientEmail').value;
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+            
+            if (!recipientEmail) {
+                alert('Please select a recipient email address');
+                return;
+            }
+            
+            if (!body) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            if (!currentContact || !currentContact._id) {
+                alert('Error: No contact selected');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/messages/email/draft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contact_id: currentContact._id,
+                        email: recipientEmail,
+                        subject: subject || '(No Subject)',
+                        body: body,
+                        is_draft: true
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Draft saved successfully!');
+                    closeEmailComposer();
+                } else {
+                    alert(result.error || 'Failed to save draft');
+                }
+            } catch (error) {
+                console.error('Error saving draft:', error);
+                alert('Error saving draft: ' + error.message);
+            }
+        }
+
+        async function insertTemplate(templateName) {
+            if (!currentContact) return;
+            
+            const fullName = `${currentContact.first} ${currentContact.last}`;
+            
+            try {
+                const response = await fetch('/messages/templates/render', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_name: templateName,
+                        context: {
+                            contact_name: fullName,
+                            user_name: 'Your Name',
+                            custom_message: 'Your message here...'
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('emailBody').value = result.body;
+                } else {
+                    console.error('Template error:', result);
+                }
+            } catch (error) {
+                console.error('Error loading template:', error);
+            }
+        }
+
+        // ============= MESSAGE HISTORY FUNCTIONS =============
+
+        async function viewMessageHistory() {
+            if (!currentContact || !currentContact._id) {
+                alert('Error: No contact selected');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/messages/contact/${currentContact._id}`);
+                const result = await response.json();
+                
+                const messageList = document.getElementById('messageList');
+                messageList.innerHTML = '';
+                
+                if (result.messages && result.messages.length > 0) {
+                    result.messages.forEach(msg => {
+                        const messageItem = document.createElement('div');
+                        messageItem.style.cssText = 'padding: 15px; margin-bottom: 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;';
+                        
+                        // Status badge color
+                        let statusColor = '#8E8E93';
+                        if (msg.status === 'sent' || msg.status === 'delivered') statusColor = '#34C759';
+                        if (msg.status === 'failed') statusColor = '#FF3B30';
+                        if (msg.status === 'draft') statusColor = '#FF9500';
+                        
+                        const timestamp = new Date(msg.timestamp).toLocaleString();
+                        
+                        messageItem.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                                        ${msg.type}
+                                    </span>
+                                    <span style="background: ${statusColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                        ${msg.status}
+                                    </span>
+                                </div>
+                                <span style="font-size: 12px; color: #888;">${timestamp}</span>
+                            </div>
+                            <div style="margin-bottom: 5px;">
+                                <strong>To:</strong> ${msg.recipient}
+                            </div>
+                            ${msg.subject ? `<div style="margin-bottom: 5px;"><strong>Subject:</strong> ${msg.subject}</div>` : ''}
+                            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 4px; font-size: 14px; white-space: pre-wrap;">
+                                ${msg.body}
+                            </div>
+                            ${msg.error_message ? `<div style="margin-top: 8px; color: #FF3B30; font-size: 13px;"><strong>Error:</strong> ${msg.error_message}</div>` : ''}
+                        `;
+                        
+                        messageList.appendChild(messageItem);
+                    });
+                } else {
+                    messageList.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">No messages yet</p>';
+                }
+                
+                // Close detail modal and open message history
+                closeDetailModal();
+                document.getElementById('messageHistoryOverlay').classList.add('active');
+            } catch (error) {
+                console.error('Error loading message history:', error);
+                alert('Error loading message history: ' + error.message);
+            }
+        }
+
+        function closeMessageHistory() {
+            document.getElementById('messageHistoryOverlay').classList.remove('active');
+        }
+
+        function closeMessageHistoryOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closeMessageHistory();
+            }
+        }
     </script>
 </body>
 </html>

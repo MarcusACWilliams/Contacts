@@ -1,7 +1,38 @@
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
 from pydantic import BaseModel, field_validator
 from classes.emails import emailaddress
+
+# Pydantic model for Message
+class Message(BaseModel):
+    _id: Optional[str] = None
+    _contact_id: str
+    type: Literal['email', 'sms']
+    direction: Literal['sent', 'received'] = 'sent'
+    recipient: str  # email address or phone number
+    subject: Optional[str] = None  # only for email
+    body: str
+    status: Literal['draft', 'sending', 'sent', 'failed', 'delivered'] = 'draft'
+    timestamp: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    metadata: Optional[dict] = None
+
+    @field_validator("body")
+    @classmethod
+    def validate_body(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Message body cannot be empty")
+        return cleaned
+
+    @field_validator("recipient")
+    @classmethod
+    def validate_recipient(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Recipient cannot be empty")
+        return cleaned
 
 # Pydantic model for EmailAddress
 class EmailAddress(BaseModel):
