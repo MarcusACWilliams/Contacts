@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 import connection
 import dataModels
 from classes.emails import emailaddress
-from classes.messaging import EmailMessenger, SMSMessenger
+from classes.messaging import EmailMessenger, SMSMessenger, VoiceCallMessenger, PhoneNumber
 import uvicorn
 import time
 import random
@@ -86,7 +86,7 @@ app.add_middleware(
 #Establish database connection on startup
 @app.on_event("startup")
 async def startup():
-    global dbClient, user_collection, emails_Collection, messages_collection, email_messenger, sms_messenger
+    global dbClient, user_collection, emails_Collection, messages_collection, email_messenger, sms_messenger, voice_call_messenger
     dbClient = await connection.get_database()
     user_collection = dbClient["users"]
     emails_Collection = dbClient["emails"]
@@ -95,6 +95,7 @@ async def startup():
     # Initialize messaging services
     email_messenger = EmailMessenger()
     sms_messenger = SMSMessenger()
+    voice_call_messenger = VoiceCallMessenger()
 
 Contact = dataModels.Contact
 EmailAddress = dataModels.EmailAddress
@@ -558,6 +559,198 @@ async def render_email_template(template_data: dict):
         return {"body": rendered}
     except Exception as e:
         return {"error": f"Failed to render template: {str(e)}"}
+
+
+# ============= MOBILE MESSAGE ENDPOINTS (SMS & VOICE CALLS) =============
+
+@app.post("/phone/validate")
+async def validate_phone(phone_data: dict):
+    """Validate a phone number using the PhoneNumber class"""
+    try:
+        phone = phone_data.get("phone", "").strip()
+        if not phone:
+            return {"valid": False, "error": "Phone number cannot be empty"}
+        
+        phone_obj = PhoneNumber(phone)
+        return {
+            "valid": True,
+            "raw": phone_obj.raw,
+            "normalized": phone_obj.normalized,
+            "e164": phone_obj.e164,
+            "call_uri": phone_obj.get_call_uri(),
+            "sms_uri": phone_obj.get_sms_uri()
+        }
+    except ValueError as e:
+        return {"valid": False, "error": str(e)}
+    except Exception as e:
+        return {"valid": False, "error": f"Validation error: {str(e)}"}
+
+
+@app.post("/messages/sms/mobile-uri")
+async def get_sms_mobile_uri(sms_data: dict):
+    """Get mobile-compatible SMS URI for a contact"""
+    try:
+        phone_number = sms_data.get("phone")
+        message = sms_data.get("message", "")
+        
+        if not phone_number:
+            return {"error": "phone number is required"}
+        
+        result = sms_messenger.get_mobile_sms_uri(phone_number, message)
+        return result
+    except Exception as e:
+        return {"error": f"Failed to generate SMS URI: {str(e)}"}
+
+
+@app.post("/messages/sms/send-native")
+async def send_sms_native(sms_data: dict):
+    """Get mobile SMS URI without sending (user initiates from mobile device)"""
+    try:
+        contact_id = sms_data.get("contact_id")
+        phone_number = sms_data.get("phone")
+        message = sms_data.get("message", "")
+        
+        if not phone_number:
+            return {"error": "phone number is required"}
+        
+        # Verify contact exists
+        if contact_id:
+            contact = await user_collection.find_one({"_id": contact_id})
+            if not contact:
+                return {"error": "Contact not found"}
+        
+        result = sms_messenger.get_mobile_sms_uri(phone_number, message)
+        
+        # Log the SMS intent if contact exists
+        if result["success"] and contact_id:
+            message_id = generate_id()
+            message_record = Message(
+                _id=message_id,
+                _contact_id=contact_id,
+                type="sms",
+                direction="sent",
+                recipient=phone_number,
+                body=message,
+                status="sending",
+                timestamp=datetime.utcnow(),
+                metadata={"type": "native_sms", "uri": result["uri"]}
+            )
+            message_dict = message_record.model_dump()
+            await messages_collection.insert_one(message_dict)
+            result["message_id"] = message_id
+        
+        return result
+    except Exception as e:
+        return {"error": f"Failed to initiate SMS: {str(e)}"}
+
+
+@app.post("/messages/call/mobile-uri")
+async def get_call_mobile_uri(call_data: dict):
+    """Get mobile-compatible voice call URI for a contact"""
+    try:
+        phone_number = call_data.get("phone")
+        contact_name = call_data.get("contact_name")
+        
+        if not phone_number:
+            return {"error": "phone number is required"}
+        
+        result = voice_call_messenger.get_mobile_call_uri(phone_number)
+        if contact_name and result["success"]:
+            result["contact_name"] = contact_name
+        
+        return result
+    except Exception as e:
+        return {"error": f"Failed to generate call URI: {str(e)}"}
+
+
+@app.post("/messages/call/initiate")
+async def initiate_voice_call(call_data: dict):
+    """Initiate a voice call to a contact"""
+    try:
+        contact_id = call_data.get("contact_id")
+        phone_number = call_data.get("phone")
+        contact_name = call_data.get("contact_name")
+        
+        if not phone_number:
+            return {"error": "phone number is required"}
+        
+        # Verify contact exists
+        if contact_id:
+            contact = await user_collection.find_one({"_id": contact_id})
+            if not contact:
+                return {"error": "Contact not found"}
+        
+        result = await voice_call_messenger.initiate_call(
+            phone_number=phone_number,
+            contact_id=contact_id,
+            contact_name=contact_name
+        )
+        
+        # Log the call intent if contact exists
+        if result["success"] and contact_id:
+            message_id = generate_id()
+            # Create a message record for call history
+            message_record = Message(
+                _id=message_id,
+                _contact_id=contact_id,
+                type="call",  # Note: using "call" as type
+                direction="sent",
+                recipient=phone_number,
+                body=f"Voice call to {contact_name}" if contact_name else "Voice call",
+                status="initiated",
+                timestamp=datetime.utcnow(),
+                metadata={"type": "native_voice_call", "uri": result["mobile_uri"]}
+            )
+            message_dict = message_record.model_dump()
+            # Store in a call history collection or use metadata
+            await messages_collection.insert_one(message_dict)
+            result["message_id"] = message_id
+        
+        return result
+    except Exception as e:
+        return {"error": f"Failed to initiate call: {str(e)}"}
+
+
+@app.get("/contacts/{contact_id}/mobile-actions")
+async def get_contact_mobile_actions(contact_id: str):
+    """Get all mobile communication options for a contact (calls, SMS, etc.)"""
+    try:
+        contact = await user_collection.find_one({"_id": contact_id})
+        if not contact:
+            return {"error": "Contact not found"}
+        
+        actions = {
+            "contact_id": contact_id,
+            "contact_name": f"{contact.get('first', '')} {contact.get('last', '')}".strip(),
+            "phone_actions": [],
+            "email_actions": []
+        }
+        
+        # Add SMS and call URIs for each phone number
+        for phone in contact.get("phone", []):
+            try:
+                phone_obj = PhoneNumber(phone)
+                actions["phone_actions"].append({
+                    "phone": phone,
+                    "e164": phone_obj.e164,
+                    "call_uri": phone_obj.get_call_uri(),
+                    "sms_uri": phone_obj.get_sms_uri()
+                })
+            except ValueError:
+                pass
+        
+        # Add email addresses
+        for email in contact.get("emails", []):
+            if isinstance(email, dict):
+                email_addr = email.get("address")
+            else:
+                email_addr = str(email)
+            if email_addr:
+                actions["email_actions"].append({"email": email_addr})
+        
+        return actions
+    except Exception as e:
+        return {"error": f"Failed to retrieve contact actions: {str(e)}"}
 
 
 # Serve static files (HTML, CSS, JS)
