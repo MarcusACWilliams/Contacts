@@ -23,12 +23,15 @@
                 <div class="form-section">
                     <div class="form-group">
                         <input type="text" id="firstName" name="firstName" placeholder="First name" required>
+                        <div class="error-message" id="firstNameError"></div>
                     </div>
                     <div class="form-group">
                         <input type="text" id="lastName" name="lastName" placeholder="Last name" required>
+                        <div class="error-message" id="lastNameError"></div>
                     </div>
                     <div class="form-group">
                         <input type="text" id="company" name="company" placeholder="Company">
+                        <div class="error-message" id="companyError"></div>
                     </div>
                 </div>
 
@@ -312,11 +315,16 @@
         function addPhoneField(event) {
             event.preventDefault();
             const phoneList = document.getElementById('phoneList');
+            const phoneItemKey = Date.now(); // Unique identifier for this phone field
             const li = document.createElement('li');
             li.className = 'phone-email-item';
+            li.setAttribute('data-phone-key', phoneItemKey);
             li.innerHTML = `
-                <input type="tel" class="phone-input" id="phone-input" placeholder="Phone number">
-                <button type="button" onclick="this.parentElement.remove()">−</button>
+                <div style="width: 100%;">
+                    <input type="tel" class="phone-input" data-phone-key="${phoneItemKey}" placeholder="Phone number">
+                    <div class="error-message" style="margin-top: 4px; margin-bottom: 8px;" data-error-key="phone-${phoneItemKey}"></div>
+                </div>
+                <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-field-btn">−</button>
             `;
             phoneList.appendChild(li);
             li.querySelector('input').focus();
@@ -326,14 +334,65 @@
         function addEmailField(event) {
             event.preventDefault();
             const emailList = document.getElementById('emailList');
+            const emailItemKey = Date.now(); // Unique identifier for this email field
             const li = document.createElement('li');
             li.className = 'phone-email-item';
+            li.setAttribute('data-email-key', emailItemKey);
             li.innerHTML = `
-                <input type="email" class="email-input" placeholder="Email address">
-                <button type="button" onclick="this.parentElement.remove()">−</button>
+                <div style="width: 100%;">
+                    <input type="email" class="email-input" data-email-key="${emailItemKey}" placeholder="Email address">
+                    <div class="error-message" style="margin-top: 4px; margin-bottom: 8px;" data-error-key="email-${emailItemKey}"></div>
+                </div>
+                <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-field-btn">−</button>
             `;
             emailList.appendChild(li);
             li.querySelector('input').focus();
+        }
+
+        function clearAllErrors() {
+            // Clear error messages and styling
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.textContent = '';
+                el.classList.remove('show');
+            });
+            document.querySelectorAll('input.error-input').forEach(el => {
+                el.classList.remove('error-input');
+            });
+        }
+
+        function showFieldError(fieldId, errorMessage) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+
+            // Add error styling to input
+            field.classList.add('error-input');
+            
+            // Show error message
+            const errorElement = document.getElementById(fieldId + 'Error');
+            if (errorElement) {
+                errorElement.textContent = errorMessage;
+                errorElement.classList.add('show');
+            }
+        }
+
+        function showPhoneError(phoneInput, errorMessage) {
+            const key = phoneInput.getAttribute('data-phone-key');
+            phoneInput.classList.add('error-input');
+            const errorElement = document.querySelector(`[data-error-key="phone-${key}"]`);
+            if (errorElement) {
+                errorElement.textContent = errorMessage;
+                errorElement.classList.add('show');
+            }
+        }
+
+        function showEmailError(emailInput, errorMessage) {
+            const key = emailInput.getAttribute('data-email-key');
+            emailInput.classList.add('error-input');
+            const errorElement = document.querySelector(`[data-error-key="email-${key}"]`);
+            if (errorElement) {
+                errorElement.textContent = errorMessage;
+                errorElement.classList.add('show');
+            }
         }
 
         async function validateEmails(emails) {
@@ -362,33 +421,76 @@
         async function submitForm(event) {
             event.preventDefault();
             
+            // Clear all previous errors
+            clearAllErrors();
+            
+            // Track first field with error for focus/scroll
+            let firstErrorField = null;
+            const errors = [];
+            
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             
-            if (!firstName || !lastName) {
-                alert('Please fill in first and last name');
-                return;
+            // Validate first name
+            if (!firstName) {
+                showFieldError('firstName', 'First name is required');
+                if (!firstErrorField) firstErrorField = document.getElementById('firstName');
+                errors.push('firstName');
+            }
+            
+            // Validate last name
+            if (!lastName) {
+                showFieldError('lastName', 'Last name is required');
+                if (!firstErrorField) firstErrorField = document.getElementById('lastName');
+                errors.push('lastName');
             }
 
-            // Collect phone numbers
+            // Collect phone numbers and validate
             const phones = [];
-            document.querySelectorAll('.phone-input').forEach(input => {
+            const phoneInputs = document.querySelectorAll('.phone-input');
+            for (let input of phoneInputs) {
                 const val = input.value.trim();
-                if (val) phones.push(val);
-            });
+                if (val) {
+                    // Basic phone validation (optional - add your own rules)
+                    if (!/[0-9\-+()\s]/.test(val)) {
+                        showPhoneError(input, 'Invalid phone format');
+                        if (!firstErrorField) firstErrorField = input;
+                        errors.push('phone');
+                    } else {
+                        phones.push(val);
+                    }
+                }
+            }
 
             // Collect emails
             const emails = [];
-            document.querySelectorAll('.email-input').forEach(input => {
+            const emailInputs = document.querySelectorAll('.email-input');
+            for (let input of emailInputs) {
                 const val = input.value.trim();
                 if (val) emails.push(val);
-            });
+            }
 
             // Validate emails via backend
             const invalidEmails = await validateEmails(emails);
             if (invalidEmails.length > 0) {
-                const firstError = invalidEmails[0];
-                alert(`Invalid email: ${firstError.address}\n${firstError.error}`);
+                for (let emailInput of emailInputs) {
+                    const val = emailInput.value.trim();
+                    const invalid = invalidEmails.find(e => e.address === val);
+                    if (invalid) {
+                        showEmailError(emailInput, invalid.error);
+                        if (!firstErrorField) firstErrorField = emailInput;
+                        errors.push('email');
+                    }
+                }
+            }
+
+            // If there are errors, show them and prevent submission
+            if (errors.length > 0) {
+                // Focus and scroll to first error field
+                if (firstErrorField) {
+                    firstErrorField.focus();
+                    firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 return;
             }
 
@@ -405,17 +507,6 @@
                 notes: null,
                 birthday: null
             };
-            
-            // Check for duplicate contact before submitting
-            //if (checkForDuplicateContact) {
-             //   const duplicate = checkForDuplicateContact(firstName, lastName);
-              //  if (duplicate) {
-             //       showDuplicateWarning(duplicate);
-             //       return;
-             //   } else {
-            //        hideDuplicateWarning();
-            //    }
-            //}
  
             try {
                 // Determine if we're editing or creating
@@ -432,35 +523,37 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert(isEditMode ? 'Contact updated successfully' : 'Contact added successfully');
+                    // Show success message instead of alert
+                    console.log(isEditMode ? 'Contact updated successfully' : 'Contact added successfully');
                     closeModal();
                     fetchContacts(); // Refresh the list
                 } else {
-                    // Handle validation errors
+                    // Handle validation errors from backend
+                    clearAllErrors();
                     if (data.details && Array.isArray(data.details)) {
-                        const errorMessages = data.details.map(err => `${err.field}: ${err.message}`).join('\n');
-                        alert(`Validation Error:\n${errorMessages}`);
+                        // Map backend field names to form field IDs
+                        for (let detail of data.details) {
+                            const fieldMap = {
+                                'first': 'firstName',
+                                'last': 'lastName',
+                                'company': 'company'
+                            };
+                            const fieldId = fieldMap[detail.field] || detail.field;
+                            showFieldError(fieldId, detail.message);
+                            if (!firstErrorField) firstErrorField = document.getElementById(fieldId);
+                        }
+                        if (firstErrorField) {
+                            firstErrorField.focus();
+                            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     } else {
-                        alert(data.error || 'Error saving contact');
+                        console.error('Server error:', data.error || 'Error saving contact');
                     }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error adding contact');
+                showFieldError('firstName', 'Network error. Please try again.');
             }
-                // Show duplicate warning
-                function showDuplicateWarning(duplicate) {
-                    const warning = document.getElementById('duplicateWarning');
-                    warning.textContent = `Duplicate contact: ${duplicate.first} ${duplicate.last}`;
-                    warning.style.display = '';
-                }
-
-                // Hide duplicate warning
-                function hideDuplicateWarning() {
-                    const warning = document.getElementById('duplicateWarning');
-                    warning.textContent = '';
-                    warning.style.display = 'none';
-                }
         }
 
         // Detail Modal Functions
@@ -610,11 +703,16 @@
             phoneList.innerHTML = '';
             if (currentContact.phone && currentContact.phone.length > 0) {
                 currentContact.phone.forEach(phone => {
+                    const phoneItemKey = Date.now() + Math.random();
                     const li = document.createElement('li');
                     li.className = 'phone-email-item';
+                    li.setAttribute('data-phone-key', phoneItemKey);
                     li.innerHTML = `
-                        <input type="tel" class="phone-input" placeholder="Phone number" value="${phone}">
-                        <button type="button" onclick="this.parentElement.remove()">−</button>
+                        <div style="width: 100%;">
+                            <input type="tel" class="phone-input" data-phone-key="${phoneItemKey}" placeholder="Phone number" value="${phone}">
+                            <div class="error-message" style="margin-top: 4px; margin-bottom: 8px;" data-error-key="phone-${phoneItemKey}"></div>
+                        </div>
+                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-field-btn">−</button>
                     `;
                     phoneList.appendChild(li);
                 });
@@ -625,12 +723,17 @@
             emailList.innerHTML = '';
             if (currentContact.emails && currentContact.emails.length > 0) {
                 currentContact.emails.forEach(email => {
+                    const emailItemKey = Date.now() + Math.random();
                     const emailValue = (email && typeof email === 'object') ? email.address : email;
                     const li = document.createElement('li');
                     li.className = 'phone-email-item';
+                    li.setAttribute('data-email-key', emailItemKey);
                     li.innerHTML = `
-                        <input type="email" class="email-input" placeholder="Email address" value="${emailValue || ''}">
-                        <button type="button" onclick="this.parentElement.remove()">−</button>
+                        <div style="width: 100%;">
+                            <input type="email" class="email-input" data-email-key="${emailItemKey}" placeholder="Email address" value="${emailValue || ''}">
+                            <div class="error-message" style="margin-top: 4px; margin-bottom: 8px;" data-error-key="email-${emailItemKey}"></div>
+                        </div>
+                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="remove-field-btn">−</button>
                     `;
                     emailList.appendChild(li);
                 });

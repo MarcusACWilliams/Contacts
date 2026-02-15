@@ -291,6 +291,29 @@ button {
     border-color: #667eea;
 }
 
+.form-group input.error-input {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+.form-group input.error-input:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.error-message {
+    display: none;
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 5px;
+    font-weight: 500;
+    text-align: left;
+}
+
+.error-message.show {
+    display: block;
+}
+
 .modal-buttons {
     display: flex;
     gap: 10px;
@@ -488,39 +511,59 @@ button {
 .phone-email-item {
     display: flex;
     gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e0e0e0;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.phone-email-item > div {
+    flex: 1;
 }
 
 .phone-email-item input {
     flex: 1;
+    width: 100%;
     padding: 8px 0;
     border: none;
+    border-bottom: 1px solid #e0e0e0;
     outline: none;
     font-size: 1em;
     background: transparent;
+    transition: border-color 0.2s ease;
 }
 
-.phone-email-item button {
+.phone-email-item input:focus {
+    border-bottom-color: #667eea;
+}
+
+.phone-email-item input.error-input {
+    border-bottom-color: #dc3545 !important;
+    background-color: #fff5f5;
+}
+
+.phone-email-item input.error-input:focus {
+    border-bottom-color: #dc3545;
+}
+
+.remove-field-btn {
     background: none;
     border: none;
     color: #FF3B30;
     cursor: pointer;
-    font-size: 1.2em;
-    padding: 0;
+    font-size: 1.4em;
+    padding: 0 5px;
     width: 30px;
     height: 30px;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
+    opacity: 0.5;
     transition: opacity 0.2s ease;
+    margin-top: 4px;
 }
 
-.phone-email-item:hover button {
-    display: flex;
+.remove-field-btn:hover {
     opacity: 1;
 }
 
