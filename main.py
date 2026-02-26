@@ -21,6 +21,7 @@ import time
 import random
 import struct
 from datetime import datetime
+from pathlib import Path
 
 # Load environment variables from .env file
 load_dotenv()
@@ -59,6 +60,8 @@ def generate_id() -> str:
     return id_bytes.hex()
 
 app = FastAPI()
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIST_INDEX = BASE_DIR / "frontend" / "dist" / "index.html"
 
 # Custom exception handler for validation errors
 @app.exception_handler(RequestValidationError)
@@ -103,7 +106,9 @@ Message = dataModels.Message
 
 @app.get("/")
 async def root():
-    """Serve index.html at root"""
+    """Serve React app if built, else fallback to legacy static HTML"""
+    if FRONTEND_DIST_INDEX.exists():
+        return FileResponse(FRONTEND_DIST_INDEX)
     return FileResponse("static/index.html")
 
 @app.get("/users/")
@@ -752,6 +757,11 @@ async def get_contact_mobile_actions(contact_id: str):
     except Exception as e:
         return {"error": f"Failed to retrieve contact actions: {str(e)}"}
 
+
+# Serve React build assets if present
+frontend_assets = BASE_DIR / "frontend" / "dist" / "assets"
+if frontend_assets.exists():
+    app.mount("/assets", StaticFiles(directory=frontend_assets), name="assets")
 
 # Serve static files (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
