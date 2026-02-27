@@ -2,6 +2,12 @@ install:
 	pip install --upgrade pip &&\
 		pip install -r requirements.txt
 
+frontend-install:
+	cd frontend && npm install
+
+frontend-build:
+	cd frontend && npm run build
+
 test:
 	python -m pytest -vv
 

@@ -35,5 +35,17 @@ npm install
 npm run build
 ```
 
+Or via Makefile:
+
+```bash
+make frontend-install
+make frontend-build
+```
+
 After build, FastAPI serves `frontend/dist/index.html` at `/`.
 If no React build exists yet, `/` falls back to the legacy `static/index.html`.
+
+## Deployment note
+
+The React build output in `frontend/dist` must be present in the deployed artifact.
+If your deploy pipeline does not run `npm run build`, deploy will show the legacy UI.
