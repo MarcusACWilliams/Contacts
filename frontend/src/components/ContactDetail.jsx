@@ -12,7 +12,7 @@ function renderAddress(address) {
   return address;
 }
 
-export default function ContactDetail({ contact, onEdit }) {
+export default function ContactDetail({ contact, onEdit, compact = false }) {
   if (!contact) {
     return (
       <section className="detail-panel empty">
@@ -23,6 +23,36 @@ export default function ContactDetail({ contact, onEdit }) {
 
   const firstEmail = contact.emails?.[0]?.address || "";
   const firstPhone = contact.phone?.[0] || "";
+
+  if (compact) {
+    return (
+      <section className="detail-panel summary-panel">
+        <div className="summary-header">
+          <h2>{formatName(contact)}</h2>
+          <button className="panel-link" onClick={() => onEdit(contact)}>
+            Edit
+          </button>
+        </div>
+
+        <div className="detail-block">
+          <label>Mobile</label>
+          <div>{firstPhone || "No phone on file"}</div>
+        </div>
+
+        <div className="detail-block">
+          <label>Email</label>
+          <div>{firstEmail || "No email on file"}</div>
+        </div>
+
+        <div className="detail-block">
+          <label>Address</label>
+          <div>{renderAddress(contact.address)}</div>
+        </div>
+
+        <p className="summary-hint">Tap the selected contact again to open full details.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="detail-panel">
